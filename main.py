@@ -21,7 +21,7 @@ class MyFrame(ctk.CTkFrame):
         resolutions = self.btn_formats = ctk.CTkButton(self, text="Get Formats", height=40, command=self.get_formats)
         self.btn_formats.pack(pady=(10, 0))
 
-        self.combo_quality = ctk.CTkComboBox(self, values=[], width=250, height=40)
+        self.combo_quality = ctk.CTkComboBox(self, values=['Press get formats first'], width=250, height=40)
         self.combo_quality.pack(pady=(10, 0))
 
         self.btn_download = ctk.CTkButton(self, text="Download", height=40, command=self.start_download_thread)
@@ -35,35 +35,28 @@ class MyFrame(ctk.CTkFrame):
         self.status.pack(pady=(10, 0))
 
     def get_formats(self):
-        try:
-            self.status.configure(text="Fetching formats...")
-            url = self.entry_url.get()
+        self.status.configure(text="Fetching formats...")
+        url = self.entry_url.get()
 
-            def fetch_formats():
-                try:
+        def fetch_formats():
+            ydl_opts = {
+            'listformats': True,
+            'quiet': True
+            }
+            try:
+                with YoutubeDL(ydl_opts) as ydl:
+                    info_dict = ydl.extract_info(url, download=False)
+                    formats = info_dict['formats']
+                    resolutions = sorted(set(f['format_note'] for f in formats if 'format_note' in f))
+                    self.combo_quality.configure(values=resolutions)
+                    self.combo_quality.set(resolutions[0] if resolutions else 'No formats found')
+                    self.status.configure(text="Formats fetched")
 
-                    ydl_opts = {
-                    'listformats': True,
-                    'quiet': True
-                    }
-                
-                    with YoutubeDL(ydl_opts) as ydl:
-                        info_dict = ydl.extract_info(url, download=False)
-                        formats = info_dict['formats']
-                        resolutions = sorted(set(f['format_note'] for f in formats if 'format_note' in f))
-                        self.combo_quality.configure(values=resolutions)
-                        self.combo_quality.set(resolutions[0] if resolutions else 'No formats found')
-                        self.status.configure(text="Formats fetched")
-
-                except Exception as e:
-                    print(f"Error: {e}")
-                    self.status.configure(text="Error: " + str(e))
-                
-            threading.Thread(target=fetch_formats).start()
-
-        except Exception as e:
-            print(f"Error: {e}")
-            self.status.configure(text="Error: " + str(e))
+            except Exception as e:
+                print(f"Error: {e}")
+                self.status.configure(text="Error: " + str(e))
+            
+        threading.Thread(target=fetch_formats).start()
 
     def progress_hook(self, d):
         if d['status'] == 'downloading':
