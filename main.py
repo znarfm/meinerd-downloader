@@ -37,18 +37,29 @@ class MyFrame(ctk.CTkFrame):
     def get_formats(self):
         try:
             self.status.configure(text="Fetching formats...")
-            ydl_opts = {
-                'listformats': True,
-                'quiet': True
-            }
             url = self.entry_url.get()
-            with YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(url, download=False)
-                formats = info_dict['formats']
-                resolutions = sorted(set(f['format_note'] for f in formats if 'format_note' in f))
-                self.combo_quality.configure(values=resolutions)
-                self.combo_quality.set(resolutions[0] if resolutions else 'No formats found')
-                self.status.configure(text="Formats fetched")
+
+            def fetch_formats():
+                try:
+
+                    ydl_opts = {
+                    'listformats': True,
+                    'quiet': True
+                    }
+                
+                    with YoutubeDL(ydl_opts) as ydl:
+                        info_dict = ydl.extract_info(url, download=False)
+                        formats = info_dict['formats']
+                        resolutions = sorted(set(f['format_note'] for f in formats if 'format_note' in f))
+                        self.combo_quality.configure(values=resolutions)
+                        self.combo_quality.set(resolutions[0] if resolutions else 'No formats found')
+                        self.status.configure(text="Formats fetched")
+
+                except Exception as e:
+                    print(f"Error: {e}")
+                    self.status.configure(text="Error: " + str(e))
+                
+            threading.Thread(target=fetch_formats).start()
 
         except Exception as e:
             print(f"Error: {e}")
